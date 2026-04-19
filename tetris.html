@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Tetris · Arcade</title>
+  <title>Tetris · Nothing to do?</title>
   <link rel="stylesheet" href="css/arcade.css" />
   <style>
     #tetris-wrap {
@@ -38,6 +38,35 @@
     }
     #tet-level, #tet-lines { font-size: .85rem; }
     #tet-level span, #tet-lines span { color: #4ade80; font-weight: 700; }
+
+    /* Mobile controls */
+    #tet-controls {
+      display: none;
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      gap: 8px;
+      flex-direction: row;
+    }
+    .tet-btn {
+      width: 54px;
+      height: 54px;
+      background: #1e1e1e;
+      border: 2px solid #4ade80;
+      border-radius: 8px;
+      color: #4ade80;
+      font-size: 1.3rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .1s;
+    }
+    .tet-btn:active { background: #4ade8033; }
+    @media (pointer: coarse) { #tet-controls { display: flex; } }
   </style>
 </head>
 <body>
@@ -64,8 +93,15 @@
       </div>
       <div class="game-overlay" id="overlay">
         <h2 id="overlayTitle">Tetris</h2>
-        <p id="overlayMsg">↑ Rotate &nbsp; Space Hard-drop &nbsp; ↓ Soft-drop</p>
+        <p id="overlayMsg">↑ Rotate &nbsp;·&nbsp; ← → Move &nbsp;·&nbsp; Space Hard-drop</p>
         <button class="arcade-btn" id="startBtn">Play</button>
+      </div>
+      <div id="tet-controls">
+        <button class="tet-btn" id="tBtn-left">◀</button>
+        <button class="tet-btn" id="tBtn-rotate">↻</button>
+        <button class="tet-btn" id="tBtn-right">▶</button>
+        <button class="tet-btn" id="tBtn-down">▼</button>
+        <button class="tet-btn" id="tBtn-drop">⬇</button>
       </div>
     </div>
     <aside id="lb-panel">
@@ -313,6 +349,51 @@
     initLeaderboard('tetris', document.getElementById('lb-list'));
     initChat(document.getElementById('chat-container'));
   });
+
+  // ── Mobile button controls ──────────────────────────
+  function tryRotate() {
+    if (!running) return;
+    const rot = rotate(piece.shape);
+    if      (valid(rot, board, piece.x,   piece.y)) { piece.shape = rot; }
+    else if (valid(rot, board, piece.x-1, piece.y)) { piece.shape = rot; piece.x--; }
+    else if (valid(rot, board, piece.x+1, piece.y)) { piece.shape = rot; piece.x++; }
+    draw();
+  }
+  function tryLeft()  { if (running && valid(piece.shape,board,piece.x-1,piece.y)) { piece.x--; draw(); } }
+  function tryRight() { if (running && valid(piece.shape,board,piece.x+1,piece.y)) { piece.x++; draw(); } }
+  function trySoftDrop() { if (running && valid(piece.shape,board,piece.x,piece.y+1)) { piece.y++; draw(); } scheduleDrop(); }
+  function tryHardDrop() { if (!running) return; piece.y = ghostY(); placePiece(); draw(); }
+
+  document.getElementById('tBtn-left').addEventListener('touchstart',   e => { e.preventDefault(); tryLeft();     }, { passive: false });
+  document.getElementById('tBtn-right').addEventListener('touchstart',  e => { e.preventDefault(); tryRight();    }, { passive: false });
+  document.getElementById('tBtn-rotate').addEventListener('touchstart', e => { e.preventDefault(); tryRotate();   }, { passive: false });
+  document.getElementById('tBtn-down').addEventListener('touchstart',   e => { e.preventDefault(); trySoftDrop(); }, { passive: false });
+  document.getElementById('tBtn-drop').addEventListener('touchstart',   e => { e.preventDefault(); tryHardDrop(); }, { passive: false });
+
+  // Also work on click for non-touch
+  document.getElementById('tBtn-left').addEventListener('click',   tryLeft);
+  document.getElementById('tBtn-right').addEventListener('click',  tryRight);
+  document.getElementById('tBtn-rotate').addEventListener('click', tryRotate);
+  document.getElementById('tBtn-down').addEventListener('click',   trySoftDrop);
+  document.getElementById('tBtn-drop').addEventListener('click',   tryHardDrop);
+
+  // ── Swipe controls on canvas ────────────────────────
+  let swipeX = 0, swipeY = 0;
+  canvas.addEventListener('touchstart', e => {
+    swipeX = e.touches[0].clientX;
+    swipeY = e.touches[0].clientY;
+  }, { passive: true });
+  canvas.addEventListener('touchend', e => {
+    if (!running) return;
+    const dx = e.changedTouches[0].clientX - swipeX;
+    const dy = e.changedTouches[0].clientY - swipeY;
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) { tryRotate(); return; } // tap = rotate
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (dx > 0) tryRight(); else tryLeft();
+    } else {
+      if (dy > 0) tryHardDrop(); else tryRotate();
+    }
+  }, { passive: true });
 </script>
 </body>
 </html>
