@@ -23,15 +23,14 @@ const firebaseConfig = {
   measurementId: "G-QR664SYVDN"
 };
 
-// After filling in the values above, paste these rules into
-// Firebase console → Realtime Database → Rules:
+// Paste these rules into Firebase console → Realtime Database → Rules:
 /*
 {
   "rules": {
     "leaderboard": {
       "$game": {
+        ".read": true,
         "$uid": {
-          ".read": true,
           ".write": "auth !== null && auth.uid === $uid"
         }
       }
