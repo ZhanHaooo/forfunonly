@@ -38,6 +38,11 @@
     }
     #tet-level span, #tet-lines span { color: #4ade80; font-weight: 700; }
 
+    /* On mobile: shrink chat to reclaim space for controls row */
+    @media (pointer: coarse) {
+      #chat-container { height: 110px !important; }
+    }
+
     /* Mobile controls — sits BELOW game-layout, outside overflow:hidden */
     #tet-controls {
       display: none;
@@ -139,7 +144,8 @@
     canvas.style.width  = (canvas.width  * scale) + 'px';
     canvas.style.height = (canvas.height * scale) + 'px';
   }
-  resize();
+  // Delay until after first paint so browser has finished flex layout
+  requestAnimationFrame(function () { resize(); });
   window.addEventListener('resize', resize);
 
   const PIECES = [
