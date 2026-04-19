@@ -36,27 +36,26 @@
       border-radius: 4px;
       background: #0a0a0a;
     }
-    #tet-level, #tet-lines { font-size: .85rem; }
     #tet-level span, #tet-lines span { color: #4ade80; font-weight: 700; }
 
-    /* Mobile controls */
+    /* Mobile controls — sits BELOW game-layout, outside overflow:hidden */
     #tet-controls {
       display: none;
-      position: absolute;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      gap: 8px;
-      flex-direction: row;
+      justify-content: center;
+      gap: 10px;
+      padding: 8px 0;
+      background: #0d0d0d;
+      border-top: 1px solid #1e1e1e;
+      flex-shrink: 0;
     }
     .tet-btn {
-      width: 54px;
-      height: 54px;
+      width: 58px;
+      height: 58px;
       background: #1e1e1e;
       border: 2px solid #4ade80;
       border-radius: 8px;
       color: #4ade80;
-      font-size: 1.3rem;
+      font-size: 1.4rem;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -64,6 +63,7 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent;
       transition: background .1s;
+      flex-shrink: 0;
     }
     .tet-btn:active { background: #4ade8033; }
     @media (pointer: coarse) { #tet-controls { display: flex; } }
@@ -87,27 +87,29 @@
             <div class="tet-side-label">Next</div>
             <canvas id="nextCanvas" width="80" height="80"></canvas>
           </div>
-          <div id="tet-level" class="tet-side-label">Level<br><span id="levelVal">1</span></div>
-          <div id="tet-lines" class="tet-side-label">Lines<br><span id="linesVal">0</span></div>
+          <div class="tet-side-label">Level<br><span id="levelVal">1</span></div>
+          <div class="tet-side-label">Lines<br><span id="linesVal">0</span></div>
         </div>
       </div>
       <div class="game-overlay" id="overlay">
         <h2 id="overlayTitle">Tetris</h2>
-        <p id="overlayMsg">↑ Rotate &nbsp;·&nbsp; ← → Move &nbsp;·&nbsp; Space Hard-drop</p>
+        <p id="overlayMsg">← → Move &nbsp;·&nbsp; ↑ Rotate &nbsp;·&nbsp; Space Drop</p>
         <button class="arcade-btn" id="startBtn">Play</button>
-      </div>
-      <div id="tet-controls">
-        <button class="tet-btn" id="tBtn-left">◀</button>
-        <button class="tet-btn" id="tBtn-rotate">↻</button>
-        <button class="tet-btn" id="tBtn-right">▶</button>
-        <button class="tet-btn" id="tBtn-down">▼</button>
-        <button class="tet-btn" id="tBtn-drop">⬇</button>
       </div>
     </div>
     <aside id="lb-panel">
       <div id="lb-panel-title">Leaderboard</div>
       <div id="lb-list"></div>
     </aside>
+  </div>
+
+  <!-- Mobile controls: outside game-area so overflow:hidden doesn't clip them -->
+  <div id="tet-controls">
+    <button class="tet-btn" id="tBtn-left">◀</button>
+    <button class="tet-btn" id="tBtn-rotate">↻</button>
+    <button class="tet-btn" id="tBtn-right">▶</button>
+    <button class="tet-btn" id="tBtn-down">▼</button>
+    <button class="tet-btn" id="tBtn-drop">⬇</button>
   </div>
 
   <div id="chat-container"></div>
@@ -130,7 +132,6 @@
   canvas.width  = COLS * CELL;
   canvas.height = ROWS * CELL;
 
-  // Scale to fit area
   function resize() {
     const area = document.getElementById('game-area');
     const maxH = area.clientHeight - 24;
@@ -138,30 +139,30 @@
     canvas.style.width  = (canvas.width  * scale) + 'px';
     canvas.style.height = (canvas.height * scale) + 'px';
   }
-  resize(); window.addEventListener('resize', resize);
+  resize();
+  window.addEventListener('resize', resize);
 
   const PIECES = [
-    { shape: [[1,1,1,1]],             color: '#22d3ee' }, // I
-    { shape: [[1,1],[1,1]],           color: '#fbbf24' }, // O
-    { shape: [[0,1,0],[1,1,1]],       color: '#a855f7' }, // T
-    { shape: [[0,1,1],[1,1,0]],       color: '#4ade80' }, // S
-    { shape: [[1,1,0],[0,1,1]],       color: '#f87171' }, // Z
-    { shape: [[1,0,0],[1,1,1]],       color: '#60a5fa' }, // J
-    { shape: [[0,0,1],[1,1,1]],       color: '#fb923c' }, // L
+    { shape: [[1,1,1,1]],         color: '#22d3ee' },
+    { shape: [[1,1],[1,1]],       color: '#fbbf24' },
+    { shape: [[0,1,0],[1,1,1]],   color: '#a855f7' },
+    { shape: [[0,1,1],[1,1,0]],   color: '#4ade80' },
+    { shape: [[1,1,0],[0,1,1]],   color: '#f87171' },
+    { shape: [[1,0,0],[1,1,1]],   color: '#60a5fa' },
+    { shape: [[0,0,1],[1,1,1]],   color: '#fb923c' },
   ];
 
   const LINE_SCORES = [0, 100, 300, 500, 800];
-
-  let board, piece, nextPiece, score, best = 0, level, lines, running = false, dropTimer, lockTimer;
+  var board, piece, nextPiece, score, best = 0, level, lines, running = false, dropTimer;
 
   function emptyBoard() {
-    return Array.from({length: ROWS}, () => new Array(COLS).fill(0));
+    return Array.from({length: ROWS}, function () { return new Array(COLS).fill(0); });
   }
 
   function randomPiece() {
-    const p = PIECES[Math.floor(Math.random() * PIECES.length)];
+    var p = PIECES[Math.floor(Math.random() * PIECES.length)];
     return {
-      shape: p.shape.map(r => [...r]),
+      shape: p.shape.map(function (r) { return r.slice(); }),
       color: p.color,
       x: Math.floor((COLS - p.shape[0].length) / 2),
       y: 0
@@ -169,27 +170,31 @@
   }
 
   function rotate(shape) {
-    return shape[0].map((_, i) => shape.map(r => r[i]).reverse());
+    return shape[0].map(function (_, i) { return shape.map(function (r) { return r[i]; }).reverse(); });
   }
 
   function valid(s, brd, ox, oy) {
-    for (let r = 0; r < s.length; r++)
-      for (let c = 0; c < s[r].length; c++)
+    for (var r = 0; r < s.length; r++) {
+      for (var c = 0; c < s[r].length; c++) {
         if (s[r][c]) {
-          const nx = ox + c, ny = oy + r;
+          var nx = ox + c, ny = oy + r;
           if (nx < 0 || nx >= COLS || ny >= ROWS) return false;
           if (ny >= 0 && brd[ny][nx]) return false;
         }
+      }
+    }
     return true;
   }
 
   function placePiece() {
-    for (let r = 0; r < piece.shape.length; r++)
-      for (let c = 0; c < piece.shape[r].length; c++)
+    for (var r = 0; r < piece.shape.length; r++) {
+      for (var c = 0; c < piece.shape[r].length; c++) {
         if (piece.shape[r][c]) {
           if (piece.y + r < 0) { endGame(); return; }
           board[piece.y + r][piece.x + c] = piece.color;
         }
+      }
+    }
     clearLines();
     piece = nextPiece;
     nextPiece = randomPiece();
@@ -199,9 +204,9 @@
   }
 
   function clearLines() {
-    let cleared = 0;
-    for (let r = ROWS - 1; r >= 0; r--) {
-      if (board[r].every(c => c)) {
+    var cleared = 0;
+    for (var r = ROWS - 1; r >= 0; r--) {
+      if (board[r].every(function (c) { return c; })) {
         board.splice(r, 1);
         board.unshift(new Array(COLS).fill(0));
         cleared++; r++;
@@ -210,8 +215,8 @@
     if (cleared) {
       lines += cleared;
       score += LINE_SCORES[cleared] * level;
-      level = Math.floor(lines / 10) + 1;
-      document.getElementById('score').textContent = score;
+      level  = Math.floor(lines / 10) + 1;
+      document.getElementById('score').textContent    = score;
       document.getElementById('levelVal').textContent = level;
       document.getElementById('linesVal').textContent = lines;
       if (score > best) { best = score; document.getElementById('best').textContent = best; }
@@ -219,42 +224,9 @@
   }
 
   function ghostY() {
-    let gy = piece.y;
+    var gy = piece.y;
     while (valid(piece.shape, board, piece.x, gy + 1)) gy++;
     return gy;
-  }
-
-  function draw() {
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Grid
-    ctx.strokeStyle = '#161616'; ctx.lineWidth = 0.5;
-    for (let x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,canvas.height); ctx.stroke(); }
-    for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(canvas.width,y*CELL); ctx.stroke(); }
-
-    // Board
-    for (let r = 0; r < ROWS; r++)
-      for (let c = 0; c < COLS; c++)
-        if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
-
-    if (!piece) return;
-
-    // Ghost
-    const gy = ghostY();
-    piece.shape.forEach((row, r) =>
-      row.forEach((v, c) => {
-        if (v) {
-          ctx.fillStyle = piece.color + '33';
-          ctx.fillRect((piece.x+c)*CELL+1, (gy+r)*CELL+1, CELL-2, CELL-2);
-        }
-      })
-    );
-
-    // Active piece
-    piece.shape.forEach((row, r) =>
-      row.forEach((v, c) => { if (v) drawCell(ctx, piece.x+c, piece.y+r, piece.color); })
-    );
   }
 
   function drawCell(c, x, y, color) {
@@ -264,16 +236,45 @@
     c.fillRect(x*CELL+1, y*CELL+1, CELL-2, 4);
   }
 
+  function draw() {
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = '#161616'; ctx.lineWidth = 0.5;
+    for (var x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,canvas.height); ctx.stroke(); }
+    for (var y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(canvas.width,y*CELL); ctx.stroke(); }
+
+    for (var r = 0; r < ROWS; r++)
+      for (var c = 0; c < COLS; c++)
+        if (board[r][c]) drawCell(ctx, c, r, board[r][c]);
+
+    if (!piece) return;
+
+    var gy = ghostY();
+    piece.shape.forEach(function (row, r) {
+      row.forEach(function (v, c) {
+        if (v) {
+          ctx.fillStyle = piece.color + '33';
+          ctx.fillRect((piece.x+c)*CELL+1, (gy+r)*CELL+1, CELL-2, CELL-2);
+        }
+      });
+    });
+
+    piece.shape.forEach(function (row, r) {
+      row.forEach(function (v, c) { if (v) drawCell(ctx, piece.x+c, piece.y+r, piece.color); });
+    });
+  }
+
   function drawNext() {
     nCtx.fillStyle = '#0a0a0a';
     nCtx.fillRect(0, 0, 80, 80);
-    const s = nextPiece.shape;
-    const nc = 80 / CELL;
-    const ox = Math.floor((nc - s[0].length) / 2);
-    const oy = Math.floor((nc - s.length) / 2);
-    s.forEach((row, r) =>
-      row.forEach((v, c) => { if (v) drawCell(nCtx, ox+c, oy+r, nextPiece.color); })
-    );
+    var s  = nextPiece.shape;
+    var nc = 80 / CELL;
+    var ox = Math.floor((nc - s[0].length) / 2);
+    var oy = Math.floor((nc - s.length) / 2);
+    s.forEach(function (row, r) {
+      row.forEach(function (v, c) { if (v) drawCell(nCtx, ox+c, oy+r, nextPiece.color); });
+    });
   }
 
   function dropInterval() { return Math.max(100, 700 - (level - 1) * 60); }
@@ -314,46 +315,16 @@
     running = false;
     clearTimeout(dropTimer);
     submitScore('tetris', score);
-    const ov = document.getElementById('overlay');
     document.getElementById('overlayTitle').textContent = 'Game Over';
     document.getElementById('overlayMsg').textContent   = 'Score: ' + score;
     document.getElementById('startBtn').textContent     = 'Play Again';
-    ov.style.display = 'flex';
+    document.getElementById('overlay').style.display   = 'flex';
   }
 
-  document.getElementById('startBtn').addEventListener('click', startGame);
-
-  document.addEventListener('keydown', e => {
-    if (!running) { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); startGame(); } return; }
-    switch (e.key) {
-      case 'ArrowLeft':  e.preventDefault(); if (valid(piece.shape,board,piece.x-1,piece.y)) { piece.x--; draw(); } break;
-      case 'ArrowRight': e.preventDefault(); if (valid(piece.shape,board,piece.x+1,piece.y)) { piece.x++; draw(); } break;
-      case 'ArrowDown':  e.preventDefault(); if (valid(piece.shape,board,piece.x,piece.y+1)) { piece.y++; draw(); } scheduleDrop(); break;
-      case 'ArrowUp':
-      case 'x':
-        e.preventDefault();
-        const rot = rotate(piece.shape);
-        if (valid(rot,board,piece.x,piece.y)) { piece.shape=rot; draw(); }
-        else if (valid(rot,board,piece.x-1,piece.y)) { piece.shape=rot; piece.x--; draw(); }
-        else if (valid(rot,board,piece.x+1,piece.y)) { piece.shape=rot; piece.x++; draw(); }
-        break;
-      case ' ':
-        e.preventDefault();
-        piece.y = ghostY();
-        placePiece(); draw();
-        break;
-    }
-  });
-
-  onAuthReady(function () {
-    initLeaderboard('tetris', document.getElementById('lb-list'));
-    initChat(document.getElementById('chat-container'));
-  });
-
-  // ── Mobile button controls ──────────────────────────
+  // ── Action helpers (used by keyboard AND buttons) ──
   function tryRotate() {
     if (!running) return;
-    const rot = rotate(piece.shape);
+    var rot = rotate(piece.shape);
     if      (valid(rot, board, piece.x,   piece.y)) { piece.shape = rot; }
     else if (valid(rot, board, piece.x-1, piece.y)) { piece.shape = rot; piece.x--; }
     else if (valid(rot, board, piece.x+1, piece.y)) { piece.shape = rot; piece.x++; }
@@ -361,39 +332,62 @@
   }
   function tryLeft()  { if (running && valid(piece.shape,board,piece.x-1,piece.y)) { piece.x--; draw(); } }
   function tryRight() { if (running && valid(piece.shape,board,piece.x+1,piece.y)) { piece.x++; draw(); } }
-  function trySoftDrop() { if (running && valid(piece.shape,board,piece.x,piece.y+1)) { piece.y++; draw(); } scheduleDrop(); }
+  function trySoftDrop() { if (!running) return; if (valid(piece.shape,board,piece.x,piece.y+1)) { piece.y++; draw(); } scheduleDrop(); }
   function tryHardDrop() { if (!running) return; piece.y = ghostY(); placePiece(); draw(); }
 
-  document.getElementById('tBtn-left').addEventListener('touchstart',   e => { e.preventDefault(); tryLeft();     }, { passive: false });
-  document.getElementById('tBtn-right').addEventListener('touchstart',  e => { e.preventDefault(); tryRight();    }, { passive: false });
-  document.getElementById('tBtn-rotate').addEventListener('touchstart', e => { e.preventDefault(); tryRotate();   }, { passive: false });
-  document.getElementById('tBtn-down').addEventListener('touchstart',   e => { e.preventDefault(); trySoftDrop(); }, { passive: false });
-  document.getElementById('tBtn-drop').addEventListener('touchstart',   e => { e.preventDefault(); tryHardDrop(); }, { passive: false });
+  // ── Keyboard ───────────────────────────────────────
+  document.addEventListener('keydown', function (e) {
+    if (!running) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startGame(); }
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowLeft':  e.preventDefault(); tryLeft();     break;
+      case 'ArrowRight': e.preventDefault(); tryRight();    break;
+      case 'ArrowDown':  e.preventDefault(); trySoftDrop(); break;
+      case 'ArrowUp':    e.preventDefault(); tryRotate();   break;
+      case 'x': case 'X': tryRotate(); break;
+      case ' ':          e.preventDefault(); tryHardDrop(); break;
+    }
+  });
 
-  // Also work on click for non-touch
+  // ── On-screen buttons ──────────────────────────────
+  document.getElementById('startBtn').addEventListener('click', startGame);
+
+  document.getElementById('tBtn-left').addEventListener('touchstart',   function (e) { e.preventDefault(); tryLeft();     }, { passive: false });
+  document.getElementById('tBtn-right').addEventListener('touchstart',  function (e) { e.preventDefault(); tryRight();    }, { passive: false });
+  document.getElementById('tBtn-rotate').addEventListener('touchstart', function (e) { e.preventDefault(); tryRotate();   }, { passive: false });
+  document.getElementById('tBtn-down').addEventListener('touchstart',   function (e) { e.preventDefault(); trySoftDrop(); }, { passive: false });
+  document.getElementById('tBtn-drop').addEventListener('touchstart',   function (e) { e.preventDefault(); tryHardDrop(); }, { passive: false });
+
   document.getElementById('tBtn-left').addEventListener('click',   tryLeft);
   document.getElementById('tBtn-right').addEventListener('click',  tryRight);
   document.getElementById('tBtn-rotate').addEventListener('click', tryRotate);
   document.getElementById('tBtn-down').addEventListener('click',   trySoftDrop);
   document.getElementById('tBtn-drop').addEventListener('click',   tryHardDrop);
 
-  // ── Swipe controls on canvas ────────────────────────
-  let swipeX = 0, swipeY = 0;
-  canvas.addEventListener('touchstart', e => {
+  // ── Swipe on canvas ────────────────────────────────
+  var swipeX = 0, swipeY = 0;
+  canvas.addEventListener('touchstart', function (e) {
     swipeX = e.touches[0].clientX;
     swipeY = e.touches[0].clientY;
   }, { passive: true });
-  canvas.addEventListener('touchend', e => {
+  canvas.addEventListener('touchend', function (e) {
     if (!running) return;
-    const dx = e.changedTouches[0].clientX - swipeX;
-    const dy = e.changedTouches[0].clientY - swipeY;
-    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) { tryRotate(); return; } // tap = rotate
+    var dx = e.changedTouches[0].clientX - swipeX;
+    var dy = e.changedTouches[0].clientY - swipeY;
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) { tryRotate(); return; }
     if (Math.abs(dx) > Math.abs(dy)) {
       if (dx > 0) tryRight(); else tryLeft();
     } else {
       if (dy > 0) tryHardDrop(); else tryRotate();
     }
   }, { passive: true });
+
+  onAuthReady(function () {
+    initLeaderboard('tetris', document.getElementById('lb-list'));
+    initChat(document.getElementById('chat-container'));
+  });
 </script>
 </body>
 </html>
