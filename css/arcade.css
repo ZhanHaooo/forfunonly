@@ -1,0 +1,148 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #111;
+  color: #eee;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ───────────────────────────────────────── */
+#game-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: #0a0a0a;
+  border-bottom: 1px solid #1e1e1e;
+  flex-shrink: 0;
+  height: 48px;
+}
+
+#back-btn {
+  text-decoration: none;
+  color: #4ade80;
+  font-size: .85rem;
+  white-space: nowrap;
+  transition: color .15s;
+}
+#back-btn:hover { color: #22c55e; }
+
+#game-title {
+  flex: 1;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #4ade80;
+}
+
+#score-display { font-size: .85rem; white-space: nowrap; }
+#score-display span { color: #4ade80; font-weight: 700; }
+
+#player-badge { color: #4ade80; font-size: .82rem; font-weight: 600; white-space: nowrap; }
+
+/* ── Main layout ──────────────────────────────────── */
+#game-layout {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+#game-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: #111;
+}
+
+/* ── Leaderboard panel ────────────────────────────── */
+#lb-panel {
+  width: 190px;
+  flex-shrink: 0;
+  border-left: 1px solid #1e1e1e;
+  display: flex;
+  flex-direction: column;
+  background: #0d0d0d;
+  overflow: hidden;
+}
+
+#lb-panel-title {
+  padding: 10px 12px;
+  font-size: .68rem;
+  letter-spacing: 2px;
+  color: #555;
+  text-transform: uppercase;
+  border-bottom: 1px solid #1e1e1e;
+  flex-shrink: 0;
+}
+
+#lb-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lb-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .78rem;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+.lb-you    { background: #4ade8018; }
+.lb-rank   { width: 22px; flex-shrink: 0; font-size: .85rem; }
+.lb-name   { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ccc; }
+.lb-score  { color: #4ade80; font-weight: 700; flex-shrink: 0; }
+.lb-empty  { color: #444; font-size: .78rem; padding: 12px; text-align: center; line-height: 1.6; }
+
+/* ── Chat panel ───────────────────────────────────── */
+#chat-container { height: 180px; border-top: 1px solid #1e1e1e; flex-shrink: 0; }
+
+/* ── Game overlay (start / game-over) ─────────────── */
+.game-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  background: rgba(10,10,10,.65);
+  backdrop-filter: blur(4px);
+}
+.game-overlay h2 { font-size: 1.8rem; letter-spacing: 3px; color: #4ade80; text-transform: uppercase; }
+.game-overlay p  { font-size: .95rem; color: #aaa; }
+
+.arcade-btn {
+  padding: 11px 40px;
+  font-size: 1rem;
+  background: #4ade80;
+  color: #111;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: background .15s;
+  font-family: inherit;
+}
+.arcade-btn:hover { background: #22c55e; }
+
+/* ── Responsive ───────────────────────────────────── */
+@media (max-width: 640px) {
+  #lb-panel { display: none; }
+  #chat-container { height: 160px; }
+}

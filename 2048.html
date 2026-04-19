@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>2048 · Arcade</title>
+  <link rel="stylesheet" href="css/arcade.css" />
+  <style>
+    #board-wrap { padding: 12px; touch-action: none; }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 10px;
+      width: min(380px, 90vw);
+    }
+
+    .tile {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: clamp(.9rem, 3vw, 1.4rem);
+      transition: background .1s, color .1s;
+      letter-spacing: -1px;
+    }
+
+    .t0    { background: #2a2a2a; color: transparent; }
+    .t2    { background: #eee4da; color: #776e65; }
+    .t4    { background: #ede0c8; color: #776e65; }
+    .t8    { background: #f2b179; color: #f9f6f2; }
+    .t16   { background: #f59563; color: #f9f6f2; }
+    .t32   { background: #f67c5f; color: #f9f6f2; }
+    .t64   { background: #f65e3b; color: #f9f6f2; }
+    .t128  { background: #edcf72; color: #f9f6f2; font-size: clamp(.75rem, 2.5vw, 1.1rem); }
+    .t256  { background: #edcc61; color: #f9f6f2; font-size: clamp(.75rem, 2.5vw, 1.1rem); }
+    .t512  { background: #edc850; color: #f9f6f2; font-size: clamp(.75rem, 2.5vw, 1.1rem); }
+    .t1024 { background: #edc53f; color: #f9f6f2; font-size: clamp(.65rem, 2vw, .95rem); }
+    .t2048 { background: #edc22e; color: #f9f6f2; font-size: clamp(.65rem, 2vw, .95rem); box-shadow: 0 0 24px #edc22e88; }
+    .tbig  { background: #3c3a32; color: #f9f6f2; font-size: clamp(.55rem, 1.8vw, .85rem); }
+  </style>
+</head>
+<body>
+
+  <header id="game-header">
+    <a href="index.html" id="back-btn">← Hub</a>
+    <span id="game-title">2048</span>
+    <div id="score-display">Score: <span id="score">0</span> &nbsp;Best: <span id="best">0</span></div>
+    <div id="player-badge"></div>
+  </header>
+
+  <div id="game-layout">
+    <div id="game-area">
+      <div id="board-wrap">
+        <div id="grid"></div>
+      </div>
+      <div class="game-overlay" id="overlay">
+        <h2 id="overlayTitle">2048</h2>
+        <p id="overlayMsg">Arrow keys or swipe to merge tiles</p>
+        <button class="arcade-btn" id="startBtn">Play</button>
+      </div>
+    </div>
+    <aside id="lb-panel">
+      <div id="lb-panel-title">Leaderboard</div>
+      <div id="lb-list"></div>
+    </aside>
+  </div>
+
+  <div id="chat-container"></div>
+
+  <script src="js/firebase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script>firebase.initializeApp(firebaseConfig);</script>
+  <script src="js/auth.js"></script>
+  <script src="js/leaderboard.js"></script>
+  <script src="js/chat.js"></script>
+
+<script>
+  const SIZE = 4;
+  let board, score, best = 0, running = false, won = false;
+
+  function newBoard() { return Array.from({length: SIZE}, () => new Array(SIZE).fill(0)); }
+
+  function addTile(b) {
+    const empty = [];
+    for (let r = 0; r < SIZE; r++)
+      for (let c = 0; c < SIZE; c++)
+        if (!b[r][c]) empty.push([r, c]);
+    if (!empty.length) return;
+    const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+    b[r][c] = Math.random() < 0.9 ? 2 : 4;
+  }
+
+  function initGame() {
+    board = newBoard();
+    score = 0;
+    won   = false;
+    document.getElementById('score').textContent = 0;
+    addTile(board); addTile(board);
+    render();
+  }
+
+  function slide(row) {
+    let tiles = row.filter(v => v);
+    let gain  = 0;
+    for (let i = 0; i < tiles.length - 1; i++) {
+      if (tiles[i] === tiles[i + 1]) {
+        tiles[i] *= 2;
+        gain += tiles[i];
+        tiles.splice(i + 1, 1);
+      }
+    }
+    while (tiles.length < SIZE) tiles.push(0);
+    return { row: tiles, gain };
+  }
+
+  function move(dir) {
+    if (!running) return false;
+    let moved = false, totalGain = 0;
+
+    for (let i = 0; i < SIZE; i++) {
+      let row;
+      if (dir === 'left')  row = board[i].slice();
+      if (dir === 'right') row = board[i].slice().reverse();
+      if (dir === 'up')    row = board.map(r => r[i]);
+      if (dir === 'down')  row = board.map(r => r[i]).reverse();
+
+      const { row: newRow, gain } = slide(row);
+      totalGain += gain;
+
+      const put = dir === 'right' || dir === 'down' ? newRow.slice().reverse() : newRow;
+
+      for (let j = 0; j < SIZE; j++) {
+        let oldVal;
+        if (dir === 'left' || dir === 'right') { oldVal = board[i][j]; board[i][j] = put[j]; }
+        else                                   { oldVal = board[j][i]; board[j][i] = put[j]; }
+        if (oldVal !== put[j]) moved = true;
+      }
+    }
+
+    if (moved) {
+      score += totalGain;
+      if (score > best) { best = score; document.getElementById('best').textContent = best; }
+      document.getElementById('score').textContent = score;
+      addTile(board);
+      render();
+      checkWin();
+      if (!canMove()) endGame();
+    }
+    return moved;
+  }
+
+  function checkWin() {
+    if (won) return;
+    for (let r = 0; r < SIZE; r++)
+      for (let c = 0; c < SIZE; c++)
+        if (board[r][c] === 2048) {
+          won = true;
+          running = false;
+          submitScore('2048', score);
+          document.getElementById('overlayTitle').textContent = 'You Win! 🎉';
+          document.getElementById('overlayMsg').textContent   = 'Score: ' + score;
+          document.getElementById('startBtn').textContent     = 'Keep Going';
+          document.getElementById('overlay').style.display   = 'flex';
+          document.getElementById('startBtn').onclick = () => {
+            running = true;
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('startBtn').onclick = startGame;
+          };
+        }
+  }
+
+  function canMove() {
+    for (let r = 0; r < SIZE; r++)
+      for (let c = 0; c < SIZE; c++) {
+        if (!board[r][c]) return true;
+        if (c + 1 < SIZE && board[r][c] === board[r][c+1]) return true;
+        if (r + 1 < SIZE && board[r][c] === board[r+1][c]) return true;
+      }
+    return false;
+  }
+
+  function endGame() {
+    running = false;
+    submitScore('2048', score);
+    document.getElementById('overlayTitle').textContent = 'Game Over';
+    document.getElementById('overlayMsg').textContent   = 'Score: ' + score;
+    document.getElementById('startBtn').textContent     = 'Play Again';
+    document.getElementById('overlay').style.display   = 'flex';
+  }
+
+  function tileClass(v) {
+    if (!v)     return 't0';
+    if (v > 2048) return 'tile tbig';
+    return 't' + v;
+  }
+
+  function render() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    for (let r = 0; r < SIZE; r++)
+      for (let c = 0; c < SIZE; c++) {
+        const d = document.createElement('div');
+        const v = board[r][c];
+        d.className = 'tile ' + tileClass(v);
+        d.textContent = v || '';
+        grid.appendChild(d);
+      }
+  }
+
+  function startGame() {
+    initGame();
+    running = true;
+    document.getElementById('overlay').style.display = 'none';
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+
+  document.addEventListener('keydown', e => {
+    const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down' };
+    if (map[e.key]) { e.preventDefault(); move(map[e.key]); }
+    if (!running && (e.key === 'Enter')) startGame();
+  });
+
+  // Swipe
+  let sx = 0, sy = 0;
+  const wrap = document.getElementById('board-wrap');
+  wrap.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  wrap.addEventListener('touchend', e => {
+    if (!running) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+    if (Math.abs(dx) > Math.abs(dy)) move(dx > 0 ? 'right' : 'left');
+    else                             move(dy > 0 ? 'down'  : 'up');
+  }, { passive: true });
+
+  initGame();
+
+  onAuthReady(function () {
+    initLeaderboard('2048', document.getElementById('lb-list'));
+    initChat(document.getElementById('chat-container'));
+  });
+</script>
+</body>
+</html>

@@ -2,352 +2,164 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Snake</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arcade</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background: #111;
       color: #eee;
-      font-family: 'Segoe UI', sans-serif;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    #hub-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 56px;
+      background: #0a0a0a;
+      border-bottom: 1px solid #1e1e1e;
+      flex-shrink: 0;
+    }
+    #hub-logo {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: #4ade80;
+      text-transform: uppercase;
+    }
+    #player-badge { color: #4ade80; font-size: .85rem; font-weight: 600; }
+
+    /* Hero */
+    #hub-hero {
+      text-align: center;
+      padding: 48px 24px 32px;
+    }
+    #hub-hero h1 {
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      color: #4ade80;
+      text-shadow: 0 0 40px #4ade8055;
+    }
+    #hub-hero p { color: #555; margin-top: 10px; font-size: .95rem; letter-spacing: 1px; }
+
+    /* Game grid */
+    #game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      padding: 0 24px 48px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .game-card {
+      background: #181818;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 28px 20px 22px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      min-height: 100dvh;
-      gap: 12px;
-      padding: 12px;
-      touch-action: none;
+      gap: 10px;
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color .2s, transform .15s, box-shadow .2s;
+      cursor: pointer;
     }
-
-    h1 {
-      font-size: 2rem;
-      letter-spacing: 4px;
+    .game-card:hover {
+      border-color: #4ade80;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px #4ade8020;
+    }
+    .game-card .gc-icon { font-size: 2.8rem; line-height: 1; }
+    .game-card .gc-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 3px;
       text-transform: uppercase;
       color: #4ade80;
     }
-
-    #scoreboard {
-      display: flex;
-      gap: 32px;
-      font-size: 1rem;
-    }
-
-    #scoreboard span { color: #4ade80; font-weight: bold; }
-
-    #gameCanvas {
-      border: 2px solid #4ade80;
-      border-radius: 4px;
-      display: block;
-      background: #0a0a0a;
-      max-width: 100%;
-    }
-
-    #overlay {
-      position: absolute;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      text-align: center;
-    }
-
-    #overlay h2 { font-size: 1.8rem; color: #4ade80; }
-    #overlay p  { font-size: 1rem; color: #aaa; }
-
-    #startBtn {
-      padding: 12px 36px;
-      font-size: 1.1rem;
-      background: #4ade80;
-      color: #111;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      letter-spacing: 1px;
-      transition: background 0.2s;
-    }
-    #startBtn:hover { background: #22c55e; }
-
-    /* D-pad for mobile */
-    #dpad {
-      display: none;
-      grid-template-columns: repeat(3, 56px);
-      grid-template-rows: repeat(3, 56px);
-      gap: 6px;
-    }
-
-    .dpad-btn {
-      background: #1e1e1e;
-      border: 2px solid #4ade80;
-      border-radius: 8px;
+    .game-card .gc-desc { font-size: .82rem; color: #666; line-height: 1.5; }
+    .game-card .gc-play {
+      margin-top: 6px;
+      font-size: .8rem;
       color: #4ade80;
-      font-size: 1.4rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      transition: background 0.1s;
-    }
-    .dpad-btn:active { background: #4ade8033; }
-    .dpad-empty { visibility: hidden; }
-
-    @media (pointer: coarse) {
-      #dpad { display: grid; }
+      letter-spacing: 1px;
     }
 
-    #wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    footer {
+      margin-top: auto;
+      padding: 16px 24px;
+      text-align: center;
+      color: #333;
+      font-size: .75rem;
+      border-top: 1px solid #1a1a1a;
     }
   </style>
 </head>
 <body>
 
-  <h1>Snake</h1>
+  <header id="hub-header">
+    <span id="hub-logo">🕹 Arcade</span>
+    <span id="player-badge"></span>
+  </header>
 
-  <div id="scoreboard">
-    <div>Score: <span id="score">0</span></div>
-    <div>Best: <span id="best">0</span></div>
+  <section id="hub-hero">
+    <h1>Arcade</h1>
+    <p>Pick a game and get on the leaderboard</p>
+  </section>
+
+  <div id="game-grid">
+    <a class="game-card" href="snake.html">
+      <span class="gc-icon">🐍</span>
+      <span class="gc-name">Snake</span>
+      <span class="gc-desc">Eat food, grow longer, don't hit the walls or yourself.</span>
+      <span class="gc-play">Play →</span>
+    </a>
+    <a class="game-card" href="tetris.html">
+      <span class="gc-icon">🟩</span>
+      <span class="gc-name">Tetris</span>
+      <span class="gc-desc">Stack falling blocks, clear lines, survive as long as you can.</span>
+      <span class="gc-play">Play →</span>
+    </a>
+    <a class="game-card" href="flappy.html">
+      <span class="gc-icon">🐦</span>
+      <span class="gc-name">Flappy Bird</span>
+      <span class="gc-desc">Tap to flap through the pipes. One tap at a time.</span>
+      <span class="gc-play">Play →</span>
+    </a>
+    <a class="game-card" href="2048.html">
+      <span class="gc-icon">🔢</span>
+      <span class="gc-name">2048</span>
+      <span class="gc-desc">Swipe to merge tiles and reach the 2048 tile.</span>
+      <span class="gc-play">Play →</span>
+    </a>
+    <a class="game-card" href="breakout.html">
+      <span class="gc-icon">🧱</span>
+      <span class="gc-name">Breakout</span>
+      <span class="gc-desc">Bounce the ball to smash all the bricks before time runs out.</span>
+      <span class="gc-play">Play →</span>
+    </a>
   </div>
 
-  <div id="wrapper">
-    <canvas id="gameCanvas"></canvas>
-    <div id="overlay">
-      <h2 id="overlayTitle">Snake</h2>
-      <p id="overlayMsg">Use arrow keys, WASD, or the D-pad below.</p>
-      <button id="startBtn">Play</button>
-    </div>
-  </div>
+  <footer>Built with Firebase · All scores are global</footer>
 
-  <!-- Mobile D-pad -->
-  <div id="dpad">
-    <div class="dpad-empty"></div>
-    <button class="dpad-btn" id="btnUp">▲</button>
-    <div class="dpad-empty"></div>
-    <button class="dpad-btn" id="btnLeft">◀</button>
-    <div class="dpad-empty"></div>
-    <button class="dpad-btn" id="btnRight">▶</button>
-    <div class="dpad-empty"></div>
-    <button class="dpad-btn" id="btnDown">▼</button>
-    <div class="dpad-empty"></div>
-  </div>
-
-<script>
-  const COLS = 20, ROWS = 20;
-  const CELL = 20; // pixels per cell — scaled by canvas CSS
-
-  const canvas  = document.getElementById('gameCanvas');
-  const ctx     = canvas.getContext('2d');
-  const overlay = document.getElementById('overlay');
-  const startBtn= document.getElementById('startBtn');
-  const scoreEl = document.getElementById('score');
-  const bestEl  = document.getElementById('best');
-  const overlayTitle = document.getElementById('overlayTitle');
-  const overlayMsg   = document.getElementById('overlayMsg');
-
-  // Canvas logical size
-  canvas.width  = COLS * CELL;
-  canvas.height = ROWS * CELL;
-
-  // Scale canvas to fit screen nicely
-  function resizeCanvas() {
-    const maxW = Math.min(window.innerWidth - 24, 480);
-    const scale = maxW / canvas.width;
-    canvas.style.width  = (canvas.width  * scale) + 'px';
-    canvas.style.height = (canvas.height * scale) + 'px';
-  }
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
-
-  const DIR = { UP:[0,-1], DOWN:[0,1], LEFT:[-1,0], RIGHT:[1,0] };
-  let snake, dir, nextDir, food, score, best = 0, running = false, raf;
-
-  function initGame() {
-    snake = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }];
-    dir      = DIR.RIGHT;
-    nextDir  = DIR.RIGHT;
-    score    = 0;
-    scoreEl.textContent = 0;
-    placeFood();
-  }
-
-  function placeFood() {
-    const occupied = new Set(snake.map(s => `${s.x},${s.y}`));
-    let fx, fy;
-    do {
-      fx = Math.floor(Math.random() * COLS);
-      fy = Math.floor(Math.random() * ROWS);
-    } while (occupied.has(`${fx},${fy}`));
-    food = { x: fx, y: fy };
-  }
-
-  function step() {
-    dir = nextDir;
-    const head = { x: snake[0].x + dir[0], y: snake[0].y + dir[1] };
-
-    // Wall collision
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
-      return gameOver();
-    }
-    // Self collision
-    if (snake.some(s => s.x === head.x && s.y === head.y)) {
-      return gameOver();
-    }
-
-    snake.unshift(head);
-
-    if (head.x === food.x && head.y === food.y) {
-      score++;
-      if (score > best) { best = score; bestEl.textContent = best; }
-      scoreEl.textContent = score;
-      placeFood();
-    } else {
-      snake.pop();
-    }
-
-    draw();
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Grid (subtle)
-    ctx.strokeStyle = '#1a1a1a';
-    ctx.lineWidth = 0.5;
-    for (let x = 0; x <= COLS; x++) {
-      ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,canvas.height); ctx.stroke();
-    }
-    for (let y = 0; y <= ROWS; y++) {
-      ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(canvas.width,y*CELL); ctx.stroke();
-    }
-
-    // Food
-    const padding = 2;
-    ctx.fillStyle = '#f87171';
-    ctx.beginPath();
-    ctx.arc(
-      food.x * CELL + CELL/2,
-      food.y * CELL + CELL/2,
-      CELL/2 - padding, 0, Math.PI*2
-    );
-    ctx.fill();
-
-    // Snake
-    snake.forEach((seg, i) => {
-      const t = 1 - i / snake.length;
-      ctx.fillStyle = `hsl(142, 70%, ${25 + 30*t}%)`;
-      ctx.fillRect(seg.x*CELL + 1, seg.y*CELL + 1, CELL - 2, CELL - 2);
-      if (i === 0) {
-        // Eyes
-        ctx.fillStyle = '#111';
-        const [ex1, ey1, ex2, ey2] = eyePositions(dir, seg);
-        ctx.beginPath(); ctx.arc(ex1, ey1, 2, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(ex2, ey2, 2, 0, Math.PI*2); ctx.fill();
-      }
-    });
-  }
-
-  function eyePositions(d, seg) {
-    const cx = seg.x*CELL + CELL/2, cy = seg.y*CELL + CELL/2;
-    if (d === DIR.RIGHT) return [cx+4, cy-3, cx+4, cy+3];
-    if (d === DIR.LEFT)  return [cx-4, cy-3, cx-4, cy+3];
-    if (d === DIR.UP)    return [cx-3, cy-4, cx+3, cy-4];
-    return [cx-3, cy+4, cx+3, cy+4];
-  }
-
-  let lastTime = 0;
-  const SPEED = 150; // ms per step
-
-  function loop(ts) {
-    if (!running) return;
-    if (ts - lastTime >= SPEED) {
-      lastTime = ts;
-      step();
-    }
-    raf = requestAnimationFrame(loop);
-  }
-
-  function startGame() {
-    initGame();
-    draw();
-    overlay.style.display = 'none';
-    running = true;
-    lastTime = 0;
-    raf = requestAnimationFrame(loop);
-  }
-
-  function gameOver() {
-    running = false;
-    cancelAnimationFrame(raf);
-    overlayTitle.textContent = 'Game Over';
-    overlayMsg.textContent   = `Score: ${score}`;
-    startBtn.textContent     = 'Play Again';
-    overlay.style.display    = 'flex';
-  }
-
-  startBtn.addEventListener('click', startGame);
-
-  // Keyboard controls
-  const keyMap = {
-    ArrowUp:'UP', ArrowDown:'DOWN', ArrowLeft:'LEFT', ArrowRight:'RIGHT',
-    w:'UP', s:'DOWN', a:'LEFT', d:'RIGHT',
-    W:'UP', S:'DOWN', A:'LEFT', D:'RIGHT',
-  };
-  const opposite = { UP:'DOWN', DOWN:'UP', LEFT:'RIGHT', RIGHT:'LEFT' };
-
-  document.addEventListener('keydown', e => {
-    const mapped = keyMap[e.key];
-    if (!mapped) return;
-    e.preventDefault();
-    if (!running && (e.key === 'Enter' || e.key === ' ')) { startGame(); return; }
-    const d = DIR[mapped];
-    if (opposite[mapped] !== dirName(dir)) nextDir = d;
-  });
-
-  function dirName(d) {
-    return Object.keys(DIR).find(k => DIR[k] === d);
-  }
-
-  // D-pad buttons
-  function dpadPress(mapped) {
-    if (!running) return;
-    const d = DIR[mapped];
-    if (opposite[mapped] !== dirName(dir)) nextDir = d;
-  }
-  document.getElementById('btnUp').addEventListener('click',    () => dpadPress('UP'));
-  document.getElementById('btnDown').addEventListener('click',  () => dpadPress('DOWN'));
-  document.getElementById('btnLeft').addEventListener('click',  () => dpadPress('LEFT'));
-  document.getElementById('btnRight').addEventListener('click', () => dpadPress('RIGHT'));
-
-  // Swipe controls
-  let touchStartX = 0, touchStartY = 0;
-  canvas.addEventListener('touchstart', e => {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-  }, { passive: true });
-
-  canvas.addEventListener('touchend', e => {
-    if (!running) return;
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    const dy = e.changedTouches[0].clientY - touchStartY;
-    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-    if (Math.abs(dx) > Math.abs(dy)) {
-      dpadPress(dx > 0 ? 'RIGHT' : 'LEFT');
-    } else {
-      dpadPress(dy > 0 ? 'DOWN' : 'UP');
-    }
-  }, { passive: true });
-
-  // Initial draw
-  initGame();
-  draw();
-</script>
+  <!-- Firebase -->
+  <script src="js/firebase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script>firebase.initializeApp(firebaseConfig);</script>
+  <script src="js/auth.js"></script>
 </body>
 </html>
